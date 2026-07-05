@@ -1,1 +1,1 @@
-# franquia-manaus
+# franquia-manauss
