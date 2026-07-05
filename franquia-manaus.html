@@ -642,7 +642,7 @@
           <input type="email" id="email-gerente" placeholder="gerente@romancefavorita.com.br" value="gerente@romancefavorita.com.br" oninput="atualizarTudo()">
           <button type="button" class="btn-copiar-email" id="btn-copiar-email" onclick="copiarEmail()">Copiar</button>
         </div>
-        <div class="email-copy-dica">Toque em "Copiar" e cole o e-mail no campo "Para" do seu app de e-mail, caso ele não preencha sozinho.</div>
+        <div class="email-copy-dica">O relatório será enviado automaticamente para este e-mail ao concluir. O botão "Copiar" é só um backup, caso o envio automático falhe.</div>
       </div>
       <button class="btn-enviar" id="btn-enviar" onclick="enviarRelatorio()" disabled>Concluir e enviar relatório</button>
       <div class="aviso-pendente" id="aviso-pendente"></div>
@@ -655,6 +655,9 @@
   </div>
 
   <script>
+    // URL do Google Apps Script responsável por enviar o e-mail automaticamente
+    const APPS_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbzUrZvXylNUfDElFrkf-dM8KtjNPWH_htuQgv3qPSrLxd1iiD5LQ_IbYHoHNz48OkFx_A/exec';
+
     const categorias = {
       'cat-1': { nome: 'Mercadoria', obrigatorio: true },
       'cat-2': { nome: 'Sistema no Tablet', obrigatorio: true },
@@ -768,7 +771,7 @@
       }
     }
 
-    function gerarPDF(treinador, novato, hoje) {
+    function construirPDF(treinador, novato, hoje) {
       const { jsPDF } = window.jspdf;
       const doc = new jsPDF();
       const margem = 15;
@@ -821,11 +824,10 @@
       });
 
       const nomeArquivo = 'Relatorio-Treinamento-' + (novato || 'Distribuidor').replace(/[^a-zA-Z0-9]/g, '_') + '.pdf';
-      doc.save(nomeArquivo);
-      return nomeArquivo;
+      return { doc, nomeArquivo };
     }
 
-    function enviarRelatorio() {
+    async function enviarRelatorio() {
       const treinador = document.getElementById('nome-treinador').value.trim();
       const novato = document.getElementById('nome-novato').value.trim();
       const emailGerente = document.getElementById('email-gerente').value.trim();
@@ -835,20 +837,73 @@
         return;
       }
 
+      const btn = document.getElementById('btn-enviar');
+      const textoOriginalBtn = btn.textContent;
+
       const hoje = new Date().toLocaleDateString('pt-BR');
-      const nomeArquivo = gerarPDF(treinador, novato, hoje);
-
+      const { doc, nomeArquivo } = construirPDF(treinador, novato, hoje);
       const assunto = 'Checklist de Treinamento - Franquia Manaus - ' + novato;
-      const corpo = 'Olá!\n\nSegue o relatório de treinamento de ' + novato + ' (treinado por ' + treinador + ' em ' + hoje + ').\n\n' +
-        'IMPORTANTE: o PDF "' + nomeArquivo + '" acabou de ser baixado no seu dispositivo (geralmente na pasta Downloads). ' +
-        'Por favor, anexe esse arquivo a este e-mail antes de enviar.\n\nObrigado(a)!';
+      const corpo = 'Olá!\n\nSegue o relatório de treinamento de ' + novato + ' (treinado por ' + treinador + ' em ' + hoje + ').\n\nObrigado(a)!';
 
+      // Caminho preferido: envio automático via Google Apps Script (sem abrir nenhum app)
+      const scriptConfigurado = APPS_SCRIPT_URL && APPS_SCRIPT_URL.indexOf('COLE_AQUI') === -1;
+
+      if (scriptConfigurado) {
+        btn.disabled = true;
+        btn.textContent = 'Enviando...';
+        try {
+          const pdfDataUri = doc.output('datauristring');
+          const pdfBase64 = pdfDataUri.split(',')[1];
+
+          await fetch(APPS_SCRIPT_URL, {
+            method: 'POST',
+            mode: 'no-cors',
+            headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+            body: JSON.stringify({ emailGerente, assunto, corpo, pdfBase64, nomeArquivo })
+          });
+
+          btn.textContent = 'Relatório enviado!';
+          alert('Relatório enviado com sucesso para ' + emailGerente + '!');
+          return;
+        } catch (err) {
+          btn.disabled = false;
+          btn.textContent = textoOriginalBtn;
+          // se der erro de rede, cai nos caminhos alternativos abaixo
+        }
+      }
+
+      let pdfFile = null;
+      try {
+        const pdfBlob = doc.output('blob');
+        pdfFile = new File([pdfBlob], nomeArquivo, { type: 'application/pdf' });
+      } catch (e) {
+        pdfFile = null;
+      }
+
+      // Caminho alternativo 1: menu nativo de compartilhar (junta PDF + assunto + texto numa única ação)
+      if (pdfFile && navigator.canShare && navigator.canShare({ files: [pdfFile] })) {
+        try {
+          await navigator.share({
+            files: [pdfFile],
+            title: assunto,
+            text: corpo + '\n\nEnviar para: ' + emailGerente
+          });
+          return;
+        } catch (err) {
+          if (err && err.name === 'AbortError') return; // pessoa cancelou o compartilhamento
+          // se der erro por outro motivo, cai no caminho alternativo abaixo
+        }
+      }
+
+      // Caminho alternativo 2: baixa o PDF e abre o e-mail já com destinatário/assunto/texto (sem anexo automático)
+      doc.save(nomeArquivo);
+      const corpoFallback = corpo + '\n\nEnviar para: ' + emailGerente + '\n\nIMPORTANTE: o PDF "' + nomeArquivo + '" acabou de ser baixado no seu dispositivo. Por favor, anexe esse arquivo a este e-mail antes de enviar.';
       const mailto = 'mailto:' + encodeURIComponent(emailGerente) +
         '?subject=' + encodeURIComponent(assunto) +
-        '&body=' + encodeURIComponent(corpo);
-
+        '&body=' + encodeURIComponent(corpoFallback);
       setTimeout(() => { window.location.href = mailto; }, 600);
     }
+
 
     atualizarTudo();
   </script>
