@@ -868,6 +868,7 @@
         } catch (err) {
           btn.disabled = false;
           btn.textContent = textoOriginalBtn;
+          alert('DIAGNÓSTICO: o envio automático falhou.\n\nErro: ' + (err && err.message ? err.message : String(err)) + '\n\nVou tentar outro método agora.');
           // se der erro de rede, cai nos caminhos alternativos abaixo
         }
       }
