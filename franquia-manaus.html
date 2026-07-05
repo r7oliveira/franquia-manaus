@@ -827,6 +827,39 @@
       return { doc, nomeArquivo };
     }
 
+    function enviarViaFormularioOculto(url, dados) {
+      return new Promise((resolve) => {
+        const iframeName = 'apps-script-frame-' + Date.now();
+        const iframe = document.createElement('iframe');
+        iframe.name = iframeName;
+        iframe.style.display = 'none';
+        document.body.appendChild(iframe);
+
+        const form = document.createElement('form');
+        form.method = 'POST';
+        form.action = url;
+        form.target = iframeName;
+        form.style.display = 'none';
+
+        Object.keys(dados).forEach(chave => {
+          const input = document.createElement('input');
+          input.type = 'hidden';
+          input.name = chave;
+          input.value = dados[chave];
+          form.appendChild(input);
+        });
+
+        document.body.appendChild(form);
+        form.submit();
+
+        setTimeout(() => {
+          form.remove();
+          iframe.remove();
+          resolve();
+        }, 2500);
+      });
+    }
+
     async function enviarRelatorio() {
       const treinador = document.getElementById('nome-treinador').value.trim();
       const novato = document.getElementById('nome-novato').value.trim();
@@ -855,12 +888,7 @@
           const pdfDataUri = doc.output('datauristring');
           const pdfBase64 = pdfDataUri.split(',')[1];
 
-          await fetch(APPS_SCRIPT_URL, {
-            method: 'POST',
-            mode: 'no-cors',
-            headers: { 'Content-Type': 'text/plain;charset=utf-8' },
-            body: JSON.stringify({ emailGerente, assunto, corpo, pdfBase64, nomeArquivo })
-          });
+          await enviarViaFormularioOculto(APPS_SCRIPT_URL, { emailGerente, assunto, corpo, pdfBase64, nomeArquivo });
 
           btn.textContent = 'Relatório enviado!';
           alert('Relatório enviado com sucesso para ' + emailGerente + '!');
@@ -870,6 +898,7 @@
           btn.textContent = textoOriginalBtn;
           alert('DIAGNÓSTICO: o envio automático falhou.\n\nErro: ' + (err && err.message ? err.message : String(err)) + '\n\nVou tentar outro método agora.');
           // se der erro de rede, cai nos caminhos alternativos abaixo
+
         }
       }
 
