@@ -838,7 +838,7 @@
 
       const hoje = new Date().toLocaleDateString('pt-BR');
       const { doc, nomeArquivo } = construirPDF(treinador, novato, hoje);
-      const assunto = 'Checklist de Treinamento - Franquia Manaus - ' + novato;
+      const assunto = 'Treinamento';
       const corpo = 'Olá!\n\nSegue o relatório de treinamento de ' + novato + ' (treinado por ' + treinador + ' em ' + hoje + ').\n\nObrigado(a)!';
 
       let pdfFile = null;
