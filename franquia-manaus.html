@@ -1574,8 +1574,28 @@
         + 'Nome do treinador(a): ' + (checklist.treinador || '-') + '\n'
         + 'Nome do novo distribuidor(a): ' + (checklist.novato || '-');
 
-      doc.save(nomeArquivo);
+      let pdfFile = null;
+      try {
+        const pdfBlob = doc.output('blob');
+        pdfFile = new File([pdfBlob], nomeArquivo, { type: 'application/pdf' });
+      } catch (e) {
+        pdfFile = null;
+      }
 
+      if (pdfFile && navigator.canShare && navigator.canShare({ files: [pdfFile] })) {
+        try {
+          await navigator.share({
+            files: [pdfFile],
+            title: 'Relatório Final',
+            text: corpo
+          });
+          return;
+        } catch (err) {
+          if (err && err.name === 'AbortError') return;
+        }
+      }
+
+      doc.save(nomeArquivo);
       const numeroLimpo = whats.replace(/[^0-9]/g, '');
       const textoWhats = corpo + '\n\nIMPORTANTE: o PDF "' + nomeArquivo + '" acabou de ser baixado no seu dispositivo. Anexe esse arquivo na conversa antes de enviar.';
       const waLink = 'https://wa.me/' + numeroLimpo + '?text=' + encodeURIComponent(textoWhats);
