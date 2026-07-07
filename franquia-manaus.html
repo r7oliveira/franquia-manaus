@@ -1129,6 +1129,35 @@
       voltarHome();
     }
 
+    /* ---------- RESET GERAL (após envio do relatório) ---------- */
+    function resetarTudo() {
+      localStorage.removeItem('fm_checklist');
+      localStorage.removeItem('fm_avaliacao');
+
+      document.getElementById('nome-treinador').value = '';
+      document.getElementById('nome-novato').value = '';
+      document.querySelectorAll('.item-row.checked').forEach(el => el.classList.remove('checked'));
+      document.querySelectorAll('.itens.open').forEach(el => el.classList.remove('open'));
+      document.querySelectorAll('.cat-arrow.open').forEach(el => el.classList.remove('open'));
+
+      AVALIACAO_CAMPOS_TEXTO.forEach(id => {
+        const el = document.getElementById(id);
+        if (el) el.value = '';
+      });
+      AVALIACAO_GRUPOS_PILL.forEach(id => {
+        const grupo = document.getElementById(id);
+        if (grupo) grupo.querySelectorAll('.rating-pill').forEach(p => p.classList.remove('selected'));
+      });
+
+      const avisoAvaliacao = document.getElementById('aviso-avaliacao');
+      if (avisoAvaliacao) avisoAvaliacao.textContent = '';
+
+      atualizarTudo();
+      validarAvaliacao();
+      atualizarStatusHome();
+      voltarHome();
+    }
+
     /* ---------- AVALIAÇÃO TÉCNICA: PILLS ---------- */
     function selecionarPill(botao) {
       const grupo = botao.parentElement;
@@ -1589,6 +1618,7 @@
             title: 'Relatório Final',
             text: corpo
           });
+          resetarTudo();
           return;
         } catch (err) {
           if (err && err.name === 'AbortError') return;
@@ -1599,6 +1629,7 @@
       const numeroLimpo = whats.replace(/[^0-9]/g, '');
       const textoWhats = corpo + '\n\nIMPORTANTE: o PDF "' + nomeArquivo + '" acabou de ser baixado no seu dispositivo. Anexe esse arquivo na conversa antes de enviar.';
       const waLink = 'https://wa.me/' + numeroLimpo + '?text=' + encodeURIComponent(textoWhats);
+      resetarTudo();
       setTimeout(() => { window.location.href = waLink; }, 600);
     }
 
