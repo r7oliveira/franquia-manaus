@@ -201,39 +201,46 @@
     .cat-header {
       display: flex;
       align-items: center;
-      gap: 12px;
-      padding: 18px 18px;
+      gap: 8px;
+      padding: 18px 16px;
       cursor: pointer;
       user-select: none;
     }
     .cat-titulo {
-      font-size: 14px;
+      font-size: 12.5px;
       font-weight: 700;
       color: #1a1a1a;
       flex: 1;
       text-transform: uppercase;
-      letter-spacing: .3px;
+      letter-spacing: .2px;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      display: flex;
+      align-items: center;
+      gap: 5px;
     }
     .cat-tag {
-      font-size: 9px;
+      font-size: 7.5px;
       font-weight: 700;
       border-radius: 6px;
-      padding: 2px 7px;
-      letter-spacing: .5px;
+      padding: 1px 6px;
+      letter-spacing: .3px;
       text-transform: uppercase;
       vertical-align: middle;
-      margin-left: 6px;
+      flex-shrink: 0;
     }
     .cat-tag.obrig { background:#f0d0e8; color:#c2185b; }
     .cat-tag.opc { background:#e8eef0; color:#607d8b; }
     .cat-count {
-      font-size: 11px;
+      font-size: 10px;
       font-weight: 700;
       color: white;
       background: #ccc;
       border-radius: 20px;
-      padding: 3px 9px;
+      padding: 2px 7px;
       white-space: nowrap;
+      flex-shrink: 0;
     }
     .cat-count.done { background: var(--green); }
     .cat-arrow {
@@ -585,15 +592,10 @@
       </div>
     </div>
 
-    <div class="nivel-label">
-      <div class="nivel-badge">Complementar</div>
-      <div class="nivel-line"></div>
-    </div>
-
     <!-- CAT 5: MENTORIAS -->
     <div class="categoria">
       <div class="cat-header" onclick="toggleCat('cat-5')">
-        <div class="cat-titulo">5 · Mentorias <span class="cat-tag opc">Opcional</span></div>
+        <div class="cat-titulo">5 · Mentorias <span class="cat-tag obrig">Obrigatório</span></div>
         <div class="cat-count" id="count-cat-5">0/3</div>
         <div class="cat-arrow" id="arrow-cat-5">
           <svg width="14" height="14" viewBox="0 0 24 24" fill="none"><path d="M9 6l6 6-6 6" stroke="#888" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
@@ -609,7 +611,7 @@
     <!-- CAT 6: LUCRO -->
     <div class="categoria">
       <div class="cat-header" onclick="toggleCat('cat-6')">
-        <div class="cat-titulo">6 · Lucro do Negócio <span class="cat-tag opc">Opcional</span></div>
+        <div class="cat-titulo">6 · Lucro do Negócio <span class="cat-tag obrig">Obrigatório</span></div>
         <div class="cat-count" id="count-cat-6">0/11</div>
         <div class="cat-arrow" id="arrow-cat-6">
           <svg width="14" height="14" viewBox="0 0 24 24" fill="none"><path d="M9 6l6 6-6 6" stroke="#888" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
@@ -637,9 +639,9 @@
         Nenhum item marcado ainda.
       </div>
       <div class="campo email-final-campo">
-        <label>E-mail do Gerente (destino do relatório)</label>
+        <label>E-mail Franqueado</label>
         <div class="email-copy-row">
-          <input type="email" id="email-gerente" placeholder="gerente@romancefavorita.com.br" value="r7oliveirasantos@gmail.com" oninput="atualizarTudo()">
+          <input type="email" id="email-gerente" placeholder="gerente@romancefavorita.com.br" value="samuelromance@hotmail.com" oninput="atualizarTudo()">
           <button type="button" class="btn-copiar-email" id="btn-copiar-email" onclick="copiarEmail()">Copiar</button>
         </div>
         <div class="email-copy-dica">Toque em "Copiar" e cole no campo "Para" — ao concluir, o celular abre o menu de compartilhar com o PDF, assunto e mensagem já prontos; só falta colar o destinatário e enviar.</div>
@@ -660,8 +662,8 @@
       'cat-2': { nome: 'Sistema no Tablet', obrigatorio: true },
       'cat-3': { nome: 'Organização', obrigatorio: true },
       'cat-4': { nome: 'Atendimento', obrigatorio: true },
-      'cat-5': { nome: 'Mentorias', obrigatorio: false },
-      'cat-6': { nome: 'Lucro do Negócio', obrigatorio: false }
+      'cat-5': { nome: 'Mentorias', obrigatorio: true },
+      'cat-6': { nome: 'Lucro do Negócio', obrigatorio: true }
     };
 
     function toggleCat(id) {
@@ -727,7 +729,7 @@
       } else if (obrigatoriosPendentes > 0) {
         avisoEl.textContent = 'Ainda faltam ' + obrigatoriosPendentes + ' item(s) obrigatório(s) para marcar.';
       } else if (faltaNome) {
-        avisoEl.textContent = 'Preencha o nome do Treinador(a), do novo Distribuidor(a) e o e-mail do gerente.';
+        avisoEl.textContent = 'Preencha o nome do Treinador(a), do novo Distribuidor(a) e o e-mail do franqueado.';
       } else {
         avisoEl.textContent = '';
       }
@@ -741,7 +743,7 @@
       const email = input.value.trim();
 
       if (!email) {
-        alert('Preencha o e-mail do gerente primeiro.');
+        alert('Preencha o e-mail do franqueado primeiro.');
         return;
       }
 
@@ -830,7 +832,7 @@
       const emailGerente = document.getElementById('email-gerente').value.trim();
 
       if (!treinador || !novato || !emailGerente) {
-        alert('Preencha o nome do Treinador(a), do novo Distribuidor(a) e o e-mail do gerente antes de concluir.');
+        alert('Preencha o nome do Treinador(a), do novo Distribuidor(a) e o e-mail do franqueado antes de concluir.');
         return;
       }
 
