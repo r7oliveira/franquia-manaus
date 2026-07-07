@@ -1301,78 +1301,182 @@
 
       const { jsPDF } = window.jspdf;
       const doc = new jsPDF();
-      const margem = 15;
-      let y = 20;
+      const margem = 16;
       const larguraPagina = doc.internal.pageSize.getWidth();
       const alturaPagina = doc.internal.pageSize.getHeight();
+      const larguraUtil = larguraPagina - margem * 2;
+      let y = 0;
 
-      function garantirEspaco(altura) {
-        if (y > alturaPagina - altura) { doc.addPage(); y = 20; }
+      /* paleta */
+      const PINK_DEEP = [139, 0, 69];
+      const PINK = [217, 26, 122];
+      const DARK = [30, 30, 32];
+      const GRAY = [140, 140, 145];
+      const GRAY_LIGHT = [180, 180, 184];
+      const GREEN = [46, 125, 50];
+      const BG_PINK = [251, 244, 248];
+      const BORDER = [240, 224, 234];
+      const LINE = [234, 234, 238];
+
+      function formatarData(iso) {
+        if (!iso) return null;
+        const partes = String(iso).split('-');
+        if (partes.length !== 3) return iso;
+        return partes[2] + '/' + partes[1] + '/' + partes[0];
       }
 
+      function desenharHeaderPagina(primeira) {
+        if (primeira) {
+          doc.setFillColor(...PINK_DEEP);
+          doc.rect(0, 0, larguraPagina, 36, 'F');
+          doc.setFillColor(...PINK);
+          doc.rect(0, 36, larguraPagina, 1.4, 'F');
+
+          doc.setFont('times', 'bold');
+          doc.setFontSize(21);
+          doc.setTextColor(255, 255, 255);
+          doc.text('Relatório Final', margem, 17);
+
+          doc.setFont('helvetica', 'normal');
+          doc.setFontSize(9.5);
+          doc.setTextColor(255, 255, 255);
+          doc.text('Franquia Manaus  ·  Treinamento e Avaliação Técnica', margem, 26);
+
+          doc.setFontSize(8.5);
+          doc.setTextColor(244, 214, 229);
+          doc.text('Gerado em ' + hoje, larguraPagina - margem, 26, { align: 'right' });
+
+          y = 50;
+        } else {
+          doc.setFillColor(...PINK_DEEP);
+          doc.rect(0, 0, larguraPagina, 16, 'F');
+          doc.setFont('helvetica', 'bold');
+          doc.setFontSize(8.5);
+          doc.setTextColor(255, 255, 255);
+          doc.text('FRANQUIA MANAUS · RELATÓRIO FINAL', margem, 10.5);
+          y = 28;
+        }
+      }
+
+      function novaPagina() {
+        doc.addPage();
+        desenharHeaderPagina(false);
+      }
+
+      function garantirEspaco(altura) {
+        if (y > alturaPagina - altura - 16) { novaPagina(); }
+      }
+
+      function tituloSecao(numero, texto) {
+        garantirEspaco(22);
+        doc.setFillColor(...PINK_DEEP);
+        doc.roundedRect(margem, y, 8.5, 8.5, 2, 2, 'F');
+        doc.setFont('helvetica', 'bold');
+        doc.setFontSize(9.5);
+        doc.setTextColor(255, 255, 255);
+        doc.text(String(numero), margem + 4.25, y + 5.9, { align: 'center' });
+
+        doc.setFont('helvetica', 'bold');
+        doc.setFontSize(12.5);
+        doc.setTextColor(...PINK_DEEP);
+        doc.text(texto, margem + 13, y + 6.2);
+
+        y += 13.5;
+        doc.setDrawColor(...BORDER);
+        doc.setLineWidth(0.5);
+        doc.line(margem, y, larguraPagina - margem, y);
+        y += 8;
+      }
+
+      /* --- CABEÇALHO + PAINEL DE DADOS --- */
+      desenharHeaderPagina(true);
+
+      doc.setFillColor(...BG_PINK);
+      doc.setDrawColor(...BORDER);
+      doc.setLineWidth(0.4);
+      doc.roundedRect(margem, y, larguraUtil, 24, 3, 3, 'FD');
+
+      const meioX = margem + larguraUtil / 2;
+      doc.setDrawColor(...BORDER);
+      doc.line(meioX, y + 5, meioX, y + 19);
+
       doc.setFont('helvetica', 'bold');
-      doc.setFontSize(16);
-      doc.setTextColor(139, 0, 69);
-      doc.text('Relatório Final — Franquia Manaus', margem, y);
-      y += 10;
+      doc.setFontSize(7.6);
+      doc.setTextColor(...PINK_DEEP);
+      doc.text('TREINADOR(A)', margem + 7, y + 9);
+      doc.text('NOVO(A) DISTRIBUIDOR(A)', meioX + 7, y + 9);
 
       doc.setFont('helvetica', 'normal');
-      doc.setFontSize(11);
-      doc.setTextColor(60, 60, 60);
-      doc.text('Data de geração: ' + hoje, margem, y); y += 6;
-      doc.text('Treinador(a): ' + (checklist.treinador || '-'), margem, y); y += 6;
-      doc.text('Novo Distribuidor(a): ' + (checklist.novato || '-'), margem, y); y += 12;
+      doc.setFontSize(11.5);
+      doc.setTextColor(...DARK);
+      doc.text(checklist.treinador || '—', margem + 7, y + 17);
+      doc.text(checklist.novato || '—', meioX + 7, y + 17);
 
-      /* --- CHECKLIST --- */
-      doc.setFont('helvetica', 'bold');
-      doc.setFontSize(14);
-      doc.setTextColor(139, 0, 69);
-      doc.text('ETAPA 1 · CHECKLIST DE TREINAMENTO', margem, y);
-      y += 9;
+      y += 24 + 12;
+
+      /* --- ETAPA 1 · CHECKLIST --- */
+      tituloSecao(1, 'CHECKLIST DE TREINAMENTO');
 
       Object.keys(categorias).forEach(catId => {
         const marcados = (checklist.itens && checklist.itens[catId]) || [];
         const cont = document.getElementById(catId);
         const linhasDom = cont.querySelectorAll('.item-row .item-txt');
+        const totalCat = linhasDom.length;
+        const feitosCat = marcados.filter(Boolean).length;
 
-        garantirEspaco(30);
+        garantirEspaco(22);
+        doc.setFillColor(...BG_PINK);
+        doc.roundedRect(margem, y, larguraUtil, 9.5, 2, 2, 'F');
         doc.setFont('helvetica', 'bold');
-        doc.setFontSize(12);
-        doc.setTextColor(217, 26, 122);
-        doc.text(categorias[catId].nome.toUpperCase(), margem, y);
-        y += 7;
+        doc.setFontSize(10);
+        doc.setTextColor(...PINK_DEEP);
+        doc.text(categorias[catId].nome.toUpperCase(), margem + 4.5, y + 6.4);
+        doc.setFont('helvetica', 'normal');
+        doc.setFontSize(8.5);
+        doc.setTextColor(...GRAY);
+        doc.text(feitosCat + '/' + totalCat, larguraPagina - margem - 4.5, y + 6.4, { align: 'right' });
+        y += 15;
 
         doc.setFont('helvetica', 'normal');
-        doc.setFontSize(10);
+        doc.setFontSize(9.5);
 
         linhasDom.forEach((elTxt, i) => {
           const marcado = !!marcados[i];
           const texto = elTxt.textContent.trim();
-          const prefixo = marcado ? '[OK] ' : '[ ] ';
-          const linhas = doc.splitTextToSize(prefixo + texto, larguraPagina - margem * 2 - 4);
+          const linhas = doc.splitTextToSize(texto, larguraUtil - 12);
+          const alturaLinha = linhas.length * 4.6 + 3;
 
-          garantirEspaco(20);
-          doc.setTextColor(marcado ? 46 : 150, marcado ? 125 : 150, marcado ? 50 : 150);
-          doc.text(linhas, margem + 2, y);
-          y += linhas.length * 5 + 2;
+          garantirEspaco(alturaLinha + 4);
+
+          if (marcado) {
+            doc.setFillColor(...GREEN);
+            doc.roundedRect(margem + 1, y - 3.4, 4.2, 4.2, 1, 1, 'F');
+            doc.setDrawColor(255, 255, 255);
+            doc.setLineWidth(0.6);
+            doc.line(margem + 1.9, y - 1.4, margem + 2.8, y - 0.4);
+            doc.line(margem + 2.8, y - 0.4, margem + 4.5, y - 2.7);
+          } else {
+            doc.setDrawColor(...GRAY_LIGHT);
+            doc.setLineWidth(0.5);
+            doc.roundedRect(margem + 1, y - 3.4, 4.2, 4.2, 1, 1, 'S');
+          }
+
+          doc.setTextColor(marcado ? DARK[0] : GRAY[0], marcado ? DARK[1] : GRAY[1], marcado ? DARK[2] : GRAY[2]);
+          doc.text(linhas, margem + 9.5, y);
+          y += alturaLinha;
         });
 
-        y += 5;
+        y += 6;
       });
 
-      /* --- AVALIAÇÃO TÉCNICA --- */
-      garantirEspaco(40);
-      y += 4;
-      doc.setFont('helvetica', 'bold');
-      doc.setFontSize(14);
-      doc.setTextColor(139, 0, 69);
-      doc.text('ETAPA 2 · AVALIAÇÃO TÉCNICA', margem, y);
-      y += 9;
+      /* --- ETAPA 2 · AVALIAÇÃO TÉCNICA --- */
+      y += 2;
+      tituloSecao(2, 'AVALIAÇÃO TÉCNICA');
 
       const linhasAvaliacao = [
         ['Treinamento nº', avaliacao['av-treinamento-num']],
-        ['Data início', avaliacao['av-data-inicio']],
-        ['Data término', avaliacao['av-data-fim']],
+        ['Data início', formatarData(avaliacao['av-data-inicio'])],
+        ['Data término', formatarData(avaliacao['av-data-fim'])],
         ['Comunicação', avaliacao['av-comunicacao']],
         ['Iniciativa', avaliacao['av-iniciativa']],
         ['Pró Atividade', avaliacao['av-proatividade']],
@@ -1383,36 +1487,72 @@
         ['Prospecções aprovadas', avaliacao['av-prospeccoes-aprovadas']]
       ];
 
-      doc.setFont('helvetica', 'normal');
-      doc.setFontSize(10.5);
-      doc.setTextColor(60, 60, 60);
-      linhasAvaliacao.forEach(([rotulo, valor]) => {
-        garantirEspaco(15);
-        doc.setFont('helvetica', 'bold');
-        doc.text(rotulo + ':', margem, y);
+      const alturaLinhaTab = 9;
+      linhasAvaliacao.forEach(([rotulo, valor], i) => {
+        garantirEspaco(alturaLinhaTab + 2);
+        if (i % 2 === 0) {
+          doc.setFillColor(...BG_PINK);
+          doc.rect(margem, y - 6.2, larguraUtil, alturaLinhaTab, 'F');
+        }
         doc.setFont('helvetica', 'normal');
-        doc.text(String(valor || '-'), margem + 55, y);
-        y += 7;
+        doc.setFontSize(9.5);
+        doc.setTextColor(...GRAY);
+        doc.text(rotulo, margem + 4.5, y);
+        doc.setFont('helvetica', 'bold');
+        doc.setTextColor(...DARK);
+        doc.text(String(valor || '—'), larguraPagina - margem - 4.5, y, { align: 'right' });
+        y += alturaLinhaTab;
       });
 
-      y += 3;
+      y += 8;
+
       const blocosTexto = [
-        ['Ponto forte', avaliacao['av-ponto-forte']],
-        ['Ponto fraco', avaliacao['av-ponto-fraco']],
-        ['Comentários/Observações', avaliacao['av-comentarios']]
+        ['Ponto forte', avaliacao['av-ponto-forte'], GREEN],
+        ['Ponto fraco', avaliacao['av-ponto-fraco'], PINK],
+        ['Comentários / Observações', avaliacao['av-comentarios'], GRAY]
       ];
-      blocosTexto.forEach(([rotulo, valor]) => {
-        garantirEspaco(25);
-        doc.setFont('helvetica', 'bold');
-        doc.setFontSize(10.5);
-        doc.text(rotulo + ':', margem, y);
-        y += 6;
+
+      blocosTexto.forEach(([rotulo, valor, cor]) => {
         doc.setFont('helvetica', 'normal');
-        const linhas = doc.splitTextToSize(String(valor || '-'), larguraPagina - margem * 2);
-        garantirEspaco(linhas.length * 5 + 5);
-        doc.text(linhas, margem, y);
-        y += linhas.length * 5 + 8;
+        doc.setFontSize(9.5);
+        const linhas = doc.splitTextToSize(String(valor || '—'), larguraUtil - 14);
+        const alturaBox = linhas.length * 4.6 + 15;
+
+        garantirEspaco(alturaBox + 6);
+
+        doc.setDrawColor(...BORDER);
+        doc.setLineWidth(0.4);
+        doc.roundedRect(margem, y, larguraUtil, alturaBox, 2.5, 2.5, 'S');
+
+        doc.setFillColor(...cor);
+        doc.roundedRect(margem, y, 2.4, alturaBox, 1.2, 1.2, 'F');
+
+        doc.setFont('helvetica', 'bold');
+        doc.setFontSize(8.5);
+        doc.setTextColor(...cor);
+        doc.text(rotulo.toUpperCase(), margem + 8, y + 8);
+
+        doc.setFont('helvetica', 'normal');
+        doc.setFontSize(9.5);
+        doc.setTextColor(...DARK);
+        doc.text(linhas, margem + 8, y + 15);
+
+        y += alturaBox + 7;
       });
+
+      /* --- RODAPÉ EM TODAS AS PÁGINAS --- */
+      const totalPaginas = doc.internal.getNumberOfPages();
+      for (let p = 1; p <= totalPaginas; p++) {
+        doc.setPage(p);
+        doc.setDrawColor(...LINE);
+        doc.setLineWidth(0.3);
+        doc.line(margem, alturaPagina - 14, larguraPagina - margem, alturaPagina - 14);
+        doc.setFont('helvetica', 'normal');
+        doc.setFontSize(8);
+        doc.setTextColor(...GRAY);
+        doc.text('Franquia Manaus', margem, alturaPagina - 8);
+        doc.text('Página ' + p + ' de ' + totalPaginas, larguraPagina - margem, alturaPagina - 8, { align: 'right' });
+      }
 
       const nomeBase = (checklist.novato || checklist.treinador || 'Relatorio').replace(/[^a-zA-Z0-9]/g, '_');
       const nomeArquivo = 'Relatorio-Final-' + nomeBase + '.pdf';
